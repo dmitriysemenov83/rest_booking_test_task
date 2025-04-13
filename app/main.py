@@ -1,32 +1,31 @@
 from fastapi import FastAPI
+from contextlib import asynccontextmanager
 from app.routers import tables, reservations
 from app.db.base import engine
-from app.models.base import Base  # Импорт Base из правильного места
-from contextlib import asynccontextmanager
-from typing import AsyncGenerator
-
+from app.models.base import Base  # Убедитесь, что Base объявлен в models/base.py
+import logging
 
 @asynccontextmanager
-async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+async def lifespan(app: FastAPI):
     """Обработчик жизненного цикла приложения"""
-    # Создание таблиц при старте (в production используйте миграции!)
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    yield
-    # При необходимости можно добавить логику завершения
-
+    try:
+        # Создаем таблицы (только для разработки!)
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+        logging.info("Database tables created")
+        yield
+    except Exception as e:
+        logging.error(f"Startup error: {e}")
+        raise
 
 app = FastAPI(
     title="Restaurant Booking API",
-    description="API for booking tables in a restaurant",
-    version="0.1.0",
-    lifespan=lifespan,  # Регистрация обработчика жизненного цикла
+    lifespan=lifespan,
 )
 
-# Подключение роутеров
+# Подключаем роутеры
 app.include_router(tables.router)
 app.include_router(reservations.router)
-
 
 @app.get("/")
 async def root():

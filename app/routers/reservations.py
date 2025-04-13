@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
 
@@ -16,17 +16,24 @@ async def read_reservations(
 ):
     return await reservation_service.get_multi(db, skip=skip, limit=limit)
 
-@router.post("/", response_model=Reservation, status_code=201)
+@router.post("/", response_model=Reservation, status_code=status.HTTP_201_CREATED)
 async def create_reservation(
     reservation: ReservationCreate,
     db: AsyncSession = Depends(get_async_session)
 ):
-    return await reservation_service.create(db, obj_in=reservation)
+    return await reservation_service.create_reservation(db, reservation)
 
-@router.delete("/{reservation_id}", status_code=204)
+# @router.post("/", response_model=Reservation, status_code=201)
+# async def create_reservation(
+#     reservation: ReservationCreate,
+#     db: AsyncSession = Depends(get_async_session)
+# ):
+#     return await reservation_service.create(db, obj_in=reservation)
+
+@router.delete("/{reservation_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_reservation(
     reservation_id: int,
     db: AsyncSession = Depends(get_async_session)
 ):
-    await reservation_service.delete(db, id=reservation_id)
+    await reservation_service.delete(db, reservation_id)
     return None
