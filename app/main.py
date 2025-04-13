@@ -1,50 +1,33 @@
-import uvicorn
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
+from fastapi import FastAPI
+from app.routers import tables, reservations
+from app.db.base import engine
+from app.models.base import Base  # Импорт Base из правильного места
+from contextlib import asynccontextmanager
+from typing import AsyncGenerator
 
 
-app = FastAPI()
-
-books = [
-    {
-        'id': 1,
-        'title': 'История России',
-        'author': 'Гриша',
-    },
-    {
-        'id': 2,
-        'title': 'Математика 5 класс',
-        'author': 'Елена Владимировна',
-    }
-
-]
-
-@app.get('/books', summary='Список книг', tags=['Ручки'])
-def read_books():
-    return books
-
-@app.get('/books/{book_id}', summary='Книга по id', tags=['Ручки'])
-def read_book(book_id: int):
-    for book in books:
-        if book['id'] == book_id:
-            return book
-    raise HTTPException(status_code=404, detail='Книга не найдена')
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+    """Обработчик жизненного цикла приложения"""
+    # Создание таблиц при старте (в production используйте миграции!)
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    yield
+    # При необходимости можно добавить логику завершения
 
 
-class Book(BaseModel):
-    title: str
-    author: str
+app = FastAPI(
+    title="Restaurant Booking API",
+    description="API for booking tables in a restaurant",
+    version="0.1.0",
+    lifespan=lifespan,  # Регистрация обработчика жизненного цикла
+)
 
-@app.post('/books', summary='Добавление книги', tags=['Ручки'])
-def create_book(book: Book):
-    new_book = {
-        'id': len(books) + 1,
-        'title': book.title,
-        'author': book.author,
-    }
-    books.append(new_book)
-    return new_book
+# Подключение роутеров
+app.include_router(tables.router)
+app.include_router(reservations.router)
 
 
-if __name__ == "__main__":
-    uvicorn.run('main:app', reload=True)
+@app.get("/")
+async def root():
+    return {"message": "Restaurant Booking API"}
