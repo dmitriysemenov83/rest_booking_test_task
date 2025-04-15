@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from contextlib import asynccontextmanager
 from app.routers import tables, reservations
 from app.db.base import engine
-from app.models.base import Base  # Убедитесь, что Base объявлен в models/base.py
+from app.models.base import Base
 import logging
 
 @asynccontextmanager

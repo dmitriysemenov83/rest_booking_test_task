@@ -23,12 +23,6 @@ async def create_reservation(
 ):
     return await reservation_service.create_reservation(db, reservation)
 
-# @router.post("/", response_model=Reservation, status_code=201)
-# async def create_reservation(
-#     reservation: ReservationCreate,
-#     db: AsyncSession = Depends(get_async_session)
-# ):
-#     return await reservation_service.create(db, obj_in=reservation)
 
 @router.delete("/{reservation_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_reservation(
