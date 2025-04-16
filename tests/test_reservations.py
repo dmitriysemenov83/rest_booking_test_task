@@ -58,38 +58,35 @@ async def test_delete_reservation(async_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_reservation_overlap(async_client: AsyncClient):
-    # Создаем стол
+    # создаём стол
     table_data = {
-        "name": "Overlap Table",
-        "seats": 2,
-        "location": "Window"
+        "name": "Conflict Table",
+        "seats": 4,
+        "location": "Center"
     }
     response = await async_client.post("/tables/", json=table_data)
-    assert response.status_code == 201
+    assert response.status_code == status.HTTP_201_CREATED
     table_id = response.json()["id"]
 
-    # Время начала первого бронирования
+    # создаём первое бронирование
     start_time = datetime.now().replace(minute=0, second=0, microsecond=0)
-    start_iso = start_time.isoformat()
-
-    # Бронирование №1
     reservation_data_1 = {
-        "customer_name": "First",
+        "customer_name": "Alice",
         "table_id": table_id,
-        "reservation_time": start_iso,
+        "reservation_time": start_time.isoformat(),
         "duration_minutes": 60
     }
-
     response1 = await async_client.post("/reservations/", json=reservation_data_1)
-    assert response1.status_code == 201
+    assert response1.status_code == status.HTTP_201_CREATED
 
-    # Бронирование №2 — пересекается с первым
+    # создаём второе бронирование, которое пересекается с первым
     reservation_data_2 = {
-        "customer_name": "Second",
+        "customer_name": "Bob",
         "table_id": table_id,
-        "reservation_time": (start_time + timedelta(minutes=30)).isoformat(),  # пересекается
+        "reservation_time": (start_time + timedelta(minutes=30)).isoformat(),
         "duration_minutes": 60
     }
-
     response2 = await async_client.post("/reservations/", json=reservation_data_2)
-    assert response2.status_code == status.HTTP_400_BAD_REQUEST
+
+    assert response2.status_code == status.HTTP_409_CONFLICT
+    assert response2.json()["detail"]["error"] == "Booking conflict"
